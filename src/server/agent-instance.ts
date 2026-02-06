@@ -46,10 +46,10 @@ export class AgentInstance extends EventEmitter {
 
   async initialize(): Promise<void> {
     // Save base config to memory
-    await this.memory.saveBaseConfig(this.nodeConfig.id, this.nodeConfig);
+    await this.memory.writeBaseConfig(this.nodeConfig.id, this.nodeConfig);
     
     // Save initial instance state
-    await this.memory.saveInstanceState(
+    await this.memory.writeInstanceState(
       this.nodeConfig.id,
       this.state.id,
       this.state
@@ -98,11 +98,11 @@ export class AgentInstance extends EventEmitter {
       await this.saveInstanceState();
 
       // Save to runtime memory
-      await this.memory.saveRuntimeMemory(
+      await this.memory.writeRuntimeMemory(
         this.nodeConfig.id,
         this.state.id,
         executionId,
-        { input, output: result, timestamp: Date.now() }
+        JSON.stringify({ input, output: result, timestamp: Date.now() }, null, 2)
       );
 
       this.emit('output', {
@@ -144,11 +144,11 @@ export class AgentInstance extends EventEmitter {
       await this.saveInstanceState();
 
       // Save interaction to runtime memory
-      await this.memory.saveRuntimeMemory(
+      await this.memory.writeRuntimeMemory(
         this.nodeConfig.id,
         this.state.id,
         executionId,
-        { input: { userPrompt }, output: result, timestamp: Date.now() }
+        JSON.stringify({ input: { userPrompt }, output: result, timestamp: Date.now() }, null, 2)
       );
 
       const parsed = this.parseResult(result);
@@ -228,7 +228,7 @@ export class AgentInstance extends EventEmitter {
   }
 
   private async saveInstanceState(): Promise<void> {
-    await this.memory.saveInstanceState(
+    await this.memory.writeInstanceState(
       this.nodeConfig.id,
       this.state.id,
       this.state
@@ -236,6 +236,6 @@ export class AgentInstance extends EventEmitter {
   }
 
   async getRuntimeHistory(): Promise<string[]> {
-    return await this.memory.listRuntimeMemory(this.nodeConfig.id, this.state.id);
+    return await this.memory.listRuntimeMemories(this.nodeConfig.id, this.state.id);
   }
 }

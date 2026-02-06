@@ -4,94 +4,151 @@
 [![Yarn](https://img.shields.io/badge/yarn-4.12.0-blue.svg)](https://yarnpkg.com/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Arrangent** is an advanced multi-agent orchestration system powered by Google Gemini AI, designed to decompose complex tasks into specialized roles managed by independent LLM agents with unidirectional data flow architecture.
+**Arrangent** is an advanced multi-agent orchestration system powered by Google Gemini AI. It enables complex task decomposition into specialized roles managed by independent LLM agents, with unidirectional data flow architecture and human-in-the-loop capabilities.
+
+## 📖 Table of Contents
+
+- [Core Philosophy](#-core-philosophy)
+- [Architecture](#-architecture-overview)
+- [Key Features](#-key-features)
+- [Installation](#-installation)
+- [Quick Start](#-quick-start)
+- [CLI Usage](#-cli-usage)
+- [HTTP API](#-http-api)
+- [Use Cases](#-use-cases)
+- [Examples](#-examples)
+- [Configuration](#-configuration)
+- [Troubleshooting](#-troubleshooting)
 
 ## 🌟 Core Philosophy
 
-Arrangent draws inspiration from proven distributed system patterns:
+Arrangent draws inspiration from proven distributed system patterns to create a robust, scalable multi-agent orchestration platform:
 
-- **Kubernetes-style Declarative Configuration**: Ensures service consistency and predictable agent behavior
-- **MapReduce-inspired Concurrency**: Enables parallel task execution while maintaining data consistency
-- **Redux-like Unidirectional Flow**: Guarantees alignment of LLM-generated content through controlled state transitions
-- **Human-in-the-Loop**: Critical feedback collection points where humans validate and guide the agent workflow
+### **Kubernetes-style Declarative Configuration**
+- Define agent topologies as declarative YAML/JSON configurations
+- Ensures service consistency and predictable agent behavior
+- Version-controlled agent configurations for reproducibility
+- K8S-style HTTP API for programmatic access
+
+### **MapReduce-inspired Concurrency**
+- Parallel task execution while maintaining data consistency
+- Multiple LLM instances per node for high throughput
+- Automatic load distribution across worker agents
+- Efficient resource utilization
+
+### **Redux-like Unidirectional Flow**
+- Guarantees alignment of LLM-generated content
+- Controlled state transitions prevent circular dependencies
+- Single source of truth for data flow
+- Predictable debugging and audit trails
+
+### **Human-in-the-Loop**
+- Critical feedback collection points
+- Agents can request human guidance when uncertain
+- Pause, inspect, and interact with running agents
+- Manual intervention for quality assurance
 
 ## 🏗️ Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     Human Feedback Loop                      │
-│                    (Redux-like Actions)                      │
-└────────────────────┬────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│                  Human Feedback Loop                        │
+│              (Redux-like Action Dispatch)                   │
+└──────────────────────┬─────────────────────────────────────┘
+                       │
+        ┌──────────────┴──────────────┐
+        │                             │
+        ▼                             ▼
+  ┌──────────┐                 ┌──────────┐
+  │   CLI    │                 │ HTTP API │
+  │  Client  │                 │ /api/v1  │
+  └────┬─────┘                 └────┬─────┘
+       │                             │
+       └──────────────┬──────────────┘
+                      │
+                      ▼
+         ┌────────────────────────┐
+         │    AgentServer         │
+         │  (Node.js + Express)   │
+         └────────────┬───────────┘
+                      │
+         ┌────────────┴───────────┐
+         │   TopologyManager      │
+         │ (Execution Ordering)   │
+         └────────────┬───────────┘
+                      │
+         ┌────────────┴───────────────┐
+         │                            │
+         ▼                            ▼
+   ┌──────────┐              ┌──────────┐
+   │ Splitter │              │  Merger  │
+   │  Agent   │              │  Agent   │
+   └────┬─────┘              └────┬─────┘
+        │                          ▲
+        │   ┌──────────────────┐  │
+        └──►│  Worker Agents   │──┘
+            │  (Parallel × N)  │
+            └──────────────────┘
                      │
                      ▼
             ┌────────────────┐
-            │  Task Splitter │  ◄── Initial task decomposition
-            │     Agent      │
-            └────────┬───────┘
-                     │
-                     ▼
-         ┌───────────────────────┐
-         │  Alignment Checker    │  ◄── Validates consistency
-         │      Agent            │      and assigns subtasks
-         └───────────┬───────────┘
-                     │
-         ┌───────────┴───────────┐
-         ▼                       ▼
-    ┌─────────┐            ┌─────────┐
-    │ Worker  │            │ Worker  │
-    │ Agent 1 │            │ Agent N │  ◄── Parallel execution
-    └────┬────┘            └────┬────┘      with shared config
-         │                       │
-         └───────────┬───────────┘
-                     │
-                     ▼
-            ┌────────────────┐
-            │    Reducer     │  ◄── Aggregates results
-            │     Agent      │
-            └────────┬───────┘
-                     │
-                     ▼
-            ┌────────────────┐
-            │ Output Results │
+            │ 3-Layer Memory │
+            │  - Base Config │
+            │  - State       │
+            │  - Runtime     │
             └────────────────┘
 ```
 
 ## 🎯 Key Features
 
 ### 1. **Role-Based Task Decomposition**
-- Tasks are automatically split into multiple sub-tasks
-- Each sub-task is assigned to a specialized role
-- Roles are isolated and executed by dedicated LLM agents
+Tasks are automatically split into specialized sub-tasks, each handled by dedicated LLM agents:
+- **Splitter**: Decomposes initial task into manageable sub-tasks
+- **Worker**: Executes specific sub-tasks (runs in parallel)
+- **Validator**: Validates output alignment and quality
+- **Merger**: Aggregates results from multiple workers
 
 ### 2. **Unidirectional Data Flow**
-- Data flows in one direction only: Input → Processing → Output
-- Ensures consistency and alignment of LLM-generated content
-- Prevents circular dependencies and conflicting states
-- Transfer directories facilitate controlled information passing between nodes
+```
+Input → Splitter → Workers → Validator → Merger → Output
+         ↓           ↓          ↓           ↓
+      Memory      Memory     Memory      Memory
+```
+- Data flows in one direction only
+- Prevents circular dependencies
+- Ensures consistency and alignment
+- Transfer channels for controlled information passing
 
-### 3. **Parallel Execution with Shared Configuration**
-- Single nodes can host multiple concurrent LLM instances
-- All instances share a base configuration
-- Each instance has its own scope division for specialized processing
-- MapReduce-style task distribution for optimal throughput
+### 3. **Parallel Execution**
+- Multiple LLM instances per node (configurable)
+- Shared base configuration with instance-specific scopes
+- MapReduce-style task distribution
+- 3-5x speedup for large tasks
 
-### 4. **Memory-Persistent Agents**
-- Each agent node maintains its own directory
-- Stores execution history and context as Markdown files
-- Enables agents to learn from past executions
-- Facilitates debugging and audit trails
+### 4. **3-Layer Memory System**
+```
+Layer 1: Base Configuration (shared)
+  └─ memory/{node}/config/base.json
 
-### 5. **Alignment Verification**
-- Dedicated alignment checker agent monitors output consistency
-- Validates results against expected patterns
-- Assigns corrective tasks when misalignment is detected
-- Iterative refinement until accuracy threshold is met
+Layer 2: Instance State (per-instance)
+  └─ memory/{node}/instances/{id}.json
 
-### 6. **Declarative Configuration**
-- K8S-inspired YAML/JSON configuration
-- Define agent roles, capabilities, and constraints declaratively
-- Version-controlled agent behavior
-- Easy replication and scaling
+Layer 3: Runtime Memory (execution history)
+  └─ memory/{node}/runtime/{id}/{exec}.md
+```
+
+### 5. **Kubernetes-Style HTTP API**
+- RESTful API following K8S resource patterns
+- CRUD operations for topologies, nodes, instances
+- Watch API for real-time updates (WebSocket)
+- CORS-enabled for web client development
+- Versioned API (/api/v1/)
+
+### 6. **Human-in-the-Loop**
+- Agents can pause and request human input
+- Interactive mode for guidance and intervention
+- Real-time monitoring with streaming output
+- Pause/resume/restart capabilities
 
 ## 📦 Installation
 
@@ -103,6 +160,9 @@ cd arrangent
 # Install dependencies (requires Yarn 4+)
 yarn install
 
+# Build the project
+yarn build
+
 # Configure your Gemini API key
 cp .env.example .env
 # Edit .env and add your GEMINI_API_KEY
@@ -110,196 +170,392 @@ cp .env.example .env
 
 ## 🚀 Quick Start
 
-### 1. Define Your Agent Configuration
-
-Create a configuration file `config/agents.yaml`:
-
-```yaml
-apiVersion: arrangent.io/v1
-kind: AgentConfig
-metadata:
-  name: document-analysis-pipeline
-spec:
-  task: "Analyze and summarize technical documentation"
-  
-  roles:
-    - name: task-splitter
-      type: splitter
-      llm:
-        model: gemini-1.5-pro
-        temperature: 0.3
-      
-    - name: alignment-checker
-      type: checker
-      llm:
-        model: gemini-1.5-pro
-        temperature: 0.1
-      validation:
-        accuracyThreshold: 0.95
-        maxIterations: 3
-    
-    - name: document-analyzer
-      type: worker
-      llm:
-        model: gemini-1.5-flash
-        temperature: 0.5
-      parallelism: 3
-      scope:
-        - sections
-        - chapters
-    
-    - name: result-reducer
-      type: reducer
-      llm:
-        model: gemini-1.5-pro
-        temperature: 0.3
-  
-  flow:
-    - from: task-splitter
-      to: document-analyzer
-      via: transfer/input
-    
-    - from: document-analyzer
-      to: alignment-checker
-      via: transfer/worker-output
-    
-    - from: alignment-checker
-      to: result-reducer
-      via: transfer/validated-output
-```
-
-### 2. Run Your Pipeline
+### Method 1: Using CLI
 
 ```bash
-# Execute with configuration
-yarn start --config config/agents.yaml --input "path/to/document.pdf"
+# Terminal 1: Start the management server
+yarn arrangent server
 
-# Or use the programmatic API
-node examples/run-pipeline.js
+# Terminal 2: Submit a topology
+yarn arrangent submit topologies/sample.yaml
+
+# Terminal 3: Monitor real-time execution
+yarn arrangent monitor
 ```
 
-### 3. Monitor Progress
+### Method 2: Using HTTP API
 
 ```bash
-# View agent memory (execution history)
-cat memory/document-analyzer/execution-*.md
+# Start server
+yarn arrangent server
 
-# Check transfer data between nodes
-cat transfer/worker-output/data.json
+# Create topology via API
+curl -X POST http://localhost:3000/api/v1/topologies \
+  -H "Content-Type: application/json" \
+  -d @topologies/sample.json
+
+# Start execution
+curl -X POST http://localhost:3000/api/v1/executions \
+  -H "Content-Type: application/json" \
+  -d '{"input": {"task": "Analyze microservices architecture"}}'
 ```
 
-## 📁 Project Structure
+### Method 3: Run Demo Cases
 
-```
-arrangent/
-├── config/              # Agent configuration files
-│   └── agents.yaml      # Declarative agent definitions
-├── src/
-│   ├── agents/          # Agent implementations
-│   │   ├── splitter.ts  # Task decomposition agent
-│   │   ├── worker.ts    # Generic worker agent
-│   │   ├── checker.ts   # Alignment verification agent
-│   │   └── reducer.ts   # Result aggregation agent
-│   ├── core/
-│   │   ├── flow.ts      # Unidirectional data flow manager
-│   │   ├── memory.ts    # Markdown-based memory storage
-│   │   ├── config.ts    # Configuration parser
-│   │   └── gemini.ts    # Gemini API integration
-│   ├── types/           # TypeScript type definitions
-│   └── index.ts         # Main entry point
-├── memory/              # Agent memory directories (runtime)
-│   ├── task-splitter/
-│   ├── document-analyzer/
-│   └── alignment-checker/
-├── transfer/            # Inter-node data transfer (runtime)
-│   ├── input/
-│   ├── worker-output/
-│   └── validated-output/
-├── examples/            # Usage examples
-└── tests/               # Test suites
+```bash
+# Simple demonstration
+yarn demo
+
+# Documentation analysis demo
+yarn demo:doc
+
+# Code review demo
+yarn demo:review
+
+# Video blogger style mimicry (complex case study)
+yarn case:blogger
 ```
 
-## 🔧 Configuration Reference
+## 💻 CLI Usage
 
-### Agent Types
+### Server Management
 
-1. **Splitter**: Decomposes initial task into sub-tasks
-2. **Worker**: Executes specific sub-tasks (can run in parallel)
-3. **Checker**: Validates output alignment and quality
-4. **Reducer**: Aggregates results from multiple workers
-5. **Collector**: Gathers human feedback (human-in-the-loop)
+```bash
+# Start server with default settings
+yarn arrangent server
 
-### LLM Configuration
+# Custom port and log level
+yarn arrangent server --port 3001 --log-level debug
+
+# Custom memory directory
+yarn arrangent server --memory-dir ./my-memory
+```
+
+### Topology Management
+
+```bash
+# Submit topology configuration
+yarn arrangent submit topologies/sample.yaml
+
+# View topology visualization
+yarn arrangent topology
+```
+
+### Monitoring & Inspection
+
+```bash
+# Real-time monitoring (streaming output)
+yarn arrangent monitor
+
+# List all instances
+yarn arrangent list
+
+# Inspect specific node
+yarn arrangent inspect node-id
+
+# View instance logs
+yarn arrangent logs instance-id
+```
+
+### Human Interaction
+
+```bash
+# Send custom prompt to agent
+yarn arrangent interact instance-id
+
+# Restart instance (clears state)
+yarn arrangent restart instance-id
+```
+
+### Complete Example Workflow
+
+```bash
+# 1. Start server
+yarn arrangent server &
+
+# 2. Submit topology
+yarn arrangent submit topologies/sample.yaml
+
+# 3. Monitor in real-time
+yarn arrangent monitor
+
+# When agent waits for input:
+# [14:32:47] worker-a1b2 🟡 WAITING FOR INPUT:
+#    Please clarify requirement X
+
+# 4. Provide guidance
+yarn arrangent interact worker-a1b2
+> "Requirement X means focus on performance"
+
+# Agent continues:
+# [14:32:50] worker-a1b2 🔵 RUNNING
+# [14:32:52] worker-a1b2 🟢 COMPLETED
+```
+
+## 🌐 HTTP API
+
+Arrangent provides a Kubernetes-style RESTful HTTP API for programmatic access and custom client development.
+
+### API Discovery
+
+```bash
+GET /api/v1
+```
+
+Returns available API resources and their capabilities.
+
+### Topology Management
+
+```bash
+# List all topologies
+GET /api/v1/topologies
+
+# Create topology
+POST /api/v1/topologies
+Content-Type: application/json
+{
+  "apiVersion": "arrangent.io/v1",
+  "kind": "Topology",
+  "metadata": {"name": "my-workflow"},
+  "spec": {...}
+}
+
+# Get specific topology
+GET /api/v1/topologies/{name}
+
+# Get topology status
+GET /api/v1/topologies/{name}/status
+
+# Delete topology
+DELETE /api/v1/topologies/{name}
+```
+
+### Node Management
+
+```bash
+# List all nodes
+GET /api/v1/nodes
+
+# Get specific node
+GET /api/v1/nodes/{id}
+
+# List node instances
+GET /api/v1/nodes/{id}/instances
+```
+
+### Instance Management
+
+```bash
+# List all instances
+GET /api/v1/instances
+
+# Get instance details
+GET /api/v1/instances/{id}
+
+# Get instance status
+GET /api/v1/instances/{id}/status
+
+# Update instance status
+PUT /api/v1/instances/{id}/status
+Content-Type: application/json
+{"action": "pause" | "resume"}
+
+# Interact with instance
+POST /api/v1/instances/{id}/interact
+Content-Type: application/json
+{"prompt": "Your guidance here"}
+
+# Delete/stop instance
+DELETE /api/v1/instances/{id}
+```
+
+### Execution Management
+
+```bash
+# Create execution
+POST /api/v1/executions
+Content-Type: application/json
+{
+  "input": {
+    "task": "Your task description",
+    "data": {...}
+  }
+}
+```
+
+### Response Format (K8S-style)
+
+```json
+{
+  "apiVersion": "arrangent.io/v1",
+  "kind": "Instance",
+  "metadata": {
+    "name": "worker-1-abc123",
+    "namespace": "default",
+    "uid": "abc123...",
+    "createdAt": "2024-02-06T10:00:00Z",
+    "labels": {
+      "node": "worker-1",
+      "type": "worker"
+    }
+  },
+  "spec": {
+    "nodeId": "worker-1",
+    "config": {...}
+  },
+  "status": {
+    "state": "running",
+    "progress": 0.5,
+    "message": "Processing..."
+  }
+}
+```
+
+### WebSocket Streaming
+
+```javascript
+// Connect to real-time updates
+const ws = new WebSocket('ws://localhost:3000');
+
+ws.onmessage = (event) => {
+  const message = JSON.parse(event.data);
+  console.log(message.type, message.content);
+};
+```
+
+### CORS Support
+
+The API includes CORS headers, enabling web-based clients to connect from any origin during development.
+
+## 🎯 Use Cases
+
+### 1. **Complex Document Analysis**
+- Split documents into sections
+- Parallel analysis by multiple agents
+- Quality validation and consolidation
+- **Performance**: 4x faster with 3 workers
+
+### 2. **Code Review Automation**
+- Decompose codebase into modules
+- Parallel security and quality checks
+- Aggregate findings with recommendations
+- **Benefit**: Consistent review standards
+
+### 3. **Content Generation at Scale**
+- Break content into segments
+- Generate segments in parallel
+- Style validation and merging
+- **Example**: [Video Blogger Case Study](cases/video-blogger/)
+
+### 4. **Research & Data Analysis**
+- Distribute research tasks
+- Parallel data collection and analysis
+- Cross-validation of findings
+- **Benefit**: Comprehensive coverage
+
+### 5. **Multi-Language Translation**
+- Segment source content
+- Parallel translation by language
+- Quality assurance validation
+- **Result**: Consistent terminology
+
+## 📚 Examples
+
+### Running Examples
+
+```bash
+# HTTP API examples (requires jq)
+./examples/http-api-examples.sh
+
+# CLI workflow examples
+./examples/cli-workflows.sh
+
+# Or view the scripts for reference
+cat examples/http-api-examples.sh
+cat examples/cli-workflows.sh
+```
+
+### Case Studies
+
+#### Simple Demos
+```bash
+yarn demo          # Basic flow
+yarn demo:doc      # Document analysis
+yarn demo:review   # Code review
+```
+
+#### Complex Case Study
+```bash
+yarn case:blogger  # Video blogger style mimicry
+# See cases/video-blogger/ for complete documentation
+```
+
+## ⚙️ Configuration
+
+### Topology YAML Format
 
 ```yaml
-llm:
-  model: gemini-1.5-pro | gemini-1.5-flash
-  temperature: 0.0-1.0    # Creativity level
-  maxTokens: 1000         # Response length limit
-  topP: 0.95              # Nucleus sampling
-  topK: 40                # Top-K sampling
+nodes:
+  - id: unique-node-id
+    name: Human Readable Name
+    type: splitter|worker|validator|merger
+    geminiSettings:
+      temp: 0.3              # Temperature (0-1)
+      tokens: 4096           # Max tokens
+    parallel: 3              # Number of instances
+    dependencies:            # List of node IDs
+      - prerequisite-node-id
+
+connections:
+  - from: source-node-id
+    to: target-node-id
+    channel: channel-name
 ```
 
-### Parallelism Settings
-
-```yaml
-parallelism: 3            # Number of concurrent LLM instances
-scope:                    # Scope division for each instance
-  - sections
-  - chapters
-  - appendices
-```
-
-## 🔐 Environment Variables
+### Environment Variables
 
 ```bash
 # Required
 GEMINI_API_KEY=your_api_key_here
 
 # Optional
-LOG_LEVEL=info                    # debug | info | warn | error
-MEMORY_DIR=./memory               # Agent memory storage path
-TRANSFER_DIR=./transfer           # Data transfer directory
-MAX_ITERATIONS=5                  # Maximum refinement iterations
-ALIGNMENT_THRESHOLD=0.95          # Minimum alignment score
+LOG_LEVEL=info                    # debug|info|warn|error
+MEMORY_DIR=./memory               # Memory storage path
+SERVER_PORT=3000                  # API server port
 ```
 
-## 🧪 Testing
+## 🔧 Troubleshooting
 
+### Common Issues
+
+**Issue**: Server won't start
 ```bash
-# Run all tests
-yarn test
+# Check if port is in use
+lsof -i :3000
 
-# Run specific test suite
-yarn test:agents
-yarn test:flow
-yarn test:integration
-
-# Run with coverage
-yarn test:coverage
+# Use different port
+yarn arrangent server --port 3001
 ```
 
-## 📊 Monitoring & Debugging
-
-### Memory Inspection
-
-Each agent stores its execution history in Markdown format:
-
+**Issue**: API key not found
 ```bash
-# View task splitter's decisions
-cat memory/task-splitter/execution-2024-02-06-001.md
+# Ensure .env file exists
+cat .env
 
-# Check alignment scores
-cat memory/alignment-checker/validation-results.md
+# Should contain:
+GEMINI_API_KEY=your_key_here
 ```
 
-### Flow Visualization
-
+**Issue**: Instance not responding
 ```bash
-# Generate flow diagram
-yarn visualize --config config/agents.yaml
+# Check instance status
+yarn arrangent inspect instance-id
 
-# Output: flow-diagram.svg
+# View logs
+yarn arrangent logs instance-id
+
+# Restart if needed
+yarn arrangent restart instance-id
 ```
 
 ## 🤝 Contributing
@@ -308,20 +564,28 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) for details
+MIT License - see [LICENSE](LICENSE) for details.
 
 ## 🙏 Acknowledgments
 
-- Inspired by Kubernetes declarative configuration patterns
-- Data flow architecture influenced by Redux and functional programming
-- Parallel processing concepts from MapReduce
-- Google Gemini API for powerful LLM capabilities
+- **Kubernetes**: Declarative configuration patterns
+- **Redux**: Unidirectional data flow architecture
+- **MapReduce**: Parallel processing concepts
+- **Google Gemini**: Powerful LLM capabilities
 
 ## 📞 Support
 
 - 📧 Email: support@memkits.org
 - 💬 Discord: [Join our community](https://discord.gg/arrangent)
 - 🐛 Issues: [GitHub Issues](https://github.com/Memkits/arrangent/issues)
+- 📖 Documentation: See CLI_GUIDE.md and other docs
+
+## 🔗 Resources
+
+- [CLI Guide](CLI_GUIDE.md) - Complete command reference
+- [Quick Start](CLI_QUICKSTART.md) - Get started in 5 minutes
+- [Case Studies](cases/) - Production-ready examples
+- [API Examples](examples/) - HTTP API and CLI usage
 
 ---
 
