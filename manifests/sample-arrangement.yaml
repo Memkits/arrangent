@@ -1,0 +1,61 @@
+schemaVersion: arrangent.io/v1
+arrangementKind: PersonaArrangement
+identity:
+  label: technical-document-processor
+  notes: Processes and analyzes technical documentation using multiple personas
+
+objective:
+  description: "Analyze technical documentation with high precision and generate comprehensive summaries"
+  
+  personas:
+    - identifier: task-decomposer
+      kind: decomposer
+      thinkingStyle:
+        creativity: 0.3
+        outputLimit: 8192
+        focusNarrowness: 0.7
+        samplingDiversity: 0.95
+    
+    - identifier: output-validator
+      kind: validator
+      thinkingStyle:
+        creativity: 0.1
+        outputLimit: 4096
+        focusNarrowness: 0.9
+        samplingDiversity: 0.8
+      qualityRules:
+        minimumScore: 0.95
+        retryAttempts: 3
+    
+    - identifier: work-executor
+      kind: executor
+      thinkingStyle:
+        creativity: 0.5
+        outputLimit: 8192
+        focusNarrowness: 0.5
+        samplingDiversity: 0.95
+      concurrentInstances: 2
+      responsibilityScope:
+        - document-sections
+        - technical-content
+    
+    - identifier: result-synthesizer
+      kind: synthesizer
+      thinkingStyle:
+        creativity: 0.3
+        outputLimit: 8192
+        focusNarrowness: 0.7
+        samplingDiversity: 0.95
+  
+  dataStreams:
+    - upstream: task-decomposer
+      downstream: work-executor
+      channelPath: channels/decomposed-work
+    
+    - upstream: work-executor
+      downstream: output-validator
+      channelPath: channels/execution-outputs
+    
+    - upstream: output-validator
+      downstream: result-synthesizer
+      channelPath: channels/validated-outputs
