@@ -12,6 +12,10 @@
     "demo:doc": "tsx demo/doc-analysis.ts",
     "demo:review": "tsx demo/code-review.ts",
     "case:blogger": "tsx cases/video-blogger/blogger-style-generator.ts",
+    "server": "tsx src/cli.ts server",
+    "monitor": "tsx src/cli.ts monitor",
+    "submit": "tsx src/cli.ts submit",
+    "arrangent": "tsx src/cli.ts",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
     "clean": "rm -rf dist"
