@@ -11,6 +11,7 @@
     "demo": "tsx demo/run.ts",
     "demo:doc": "tsx demo/doc-analysis.ts",
     "demo:review": "tsx demo/code-review.ts",
+    "case:blogger": "tsx cases/video-blogger/blogger-style-generator.ts",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
     "clean": "rm -rf dist"
