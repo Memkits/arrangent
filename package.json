@@ -1,0 +1,66 @@
+{
+  "name": "arrangent",
+  "version": "0.1.0",
+  "description": "Multi-agent orchestration system powered by Google Gemini AI with unidirectional data flow",
+  "packageManager": "yarn@4.12.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": "dist/cli.js",
+  "scripts": {
+    "build": "tsc",
+    "demo": "tsx demo/run.ts",
+    "demo:doc": "tsx demo/doc-analysis.ts",
+    "demo:review": "tsx demo/code-review.ts",
+    "case:blogger": "tsx cases/video-blogger/blogger-style-generator.ts",
+    "server": "tsx src/cli.ts server",
+    "monitor": "tsx src/cli.ts monitor",
+    "submit": "tsx src/cli.ts submit",
+    "arrangent": "tsx src/cli.ts",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "ai",
+    "llm",
+    "gemini",
+    "multi-agent",
+    "orchestration",
+    "workflow",
+    "agent",
+    "distributed-systems"
+  ],
+  "author": "Memkits",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Memkits/arrangent.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "chalk": "^5.6.2",
+    "cli-spinners": "^3.4.0",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.7",
+    "express": "^5.2.1",
+    "js-yaml": "^4.1.0",
+    "ws": "^8.19.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.10.5",
+    "@types/ws": "^8.18.1",
+    "@typescript-eslint/eslint-plugin": "^8.19.1",
+    "@typescript-eslint/parser": "^8.19.1",
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

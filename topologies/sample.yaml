@@ -1,0 +1,52 @@
+# Sample Topology Configuration for Arrangent
+# This file demonstrates how to define a multi-agent workflow
+
+nodes:
+  - id: task-splitter
+    name: Task Decomposer
+    type: splitter
+    geminiSettings:
+      temp: 0.3
+      tokens: 4096
+    dependencies: []
+  
+  - id: parallel-workers
+    name: Worker Pool
+    type: worker
+    geminiSettings:
+      temp: 0.7
+      tokens: 4096
+    parallel: 3  # Run 3 instances in parallel
+    dependencies:
+      - task-splitter
+  
+  - id: quality-validator
+    name: Quality Checker
+    type: validator
+    geminiSettings:
+      temp: 0.1
+      tokens: 2048
+    dependencies:
+      - parallel-workers
+  
+  - id: result-merger
+    name: Result Combiner
+    type: merger
+    geminiSettings:
+      temp: 0.3
+      tokens: 4096
+    dependencies:
+      - quality-validator
+
+connections:
+  - from: task-splitter
+    to: parallel-workers
+    channel: tasks
+  
+  - from: parallel-workers
+    to: quality-validator
+    channel: results
+  
+  - from: quality-validator
+    to: result-merger
+    channel: validated
