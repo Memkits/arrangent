@@ -17,3 +17,10 @@ node_modules
 .pnp.*
 dist/
 build/
+
+# Agent memory files (runtime data)
+memory/
+
+# Environment variables
+.env
+.env.local
